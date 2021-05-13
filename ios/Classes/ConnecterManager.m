@@ -83,7 +83,9 @@ static dispatch_once_t once;
     NSLog(@"[ConnecterManager] write:receCallBack:");
 #endif
     _bleConnecter.writeProgress = nil;
-    [_connecter write:data receCallBack:callBack];
+    [_bleConnecter write:data progress:^(NSUInteger total,NSUInteger progress){
+        NSLog(@"Send Progress:%d %d %.2f\%", total, progress,progress/total);
+    } receCallBack:callBack];
 }
 
 -(void)write:(NSData *)data {

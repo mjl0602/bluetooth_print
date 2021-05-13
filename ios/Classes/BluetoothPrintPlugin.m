@@ -31,7 +31,7 @@
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
   NSLog(@"call method -> %@", call.method);
-    
+    __weak typeof(self) weakSelf = self;
   if ([@"state" isEqualToString:call.method]) {
     result(nil);
   } else if([@"isAvailable" isEqualToString:call.method]) {
@@ -82,7 +82,7 @@
       CBPeripheral *peripheral = [_scannedPeripherals objectForKey:[device objectForKey:@"address"]];
         
       self.state = ^(ConnectState state) {
-        [self updateConnectState:state];
+        [weakSelf updateConnectState:state];
       };
       [Manager connectPeripheral:peripheral options:nil timeout:2 connectBlack: self.state];
       
@@ -114,9 +114,20 @@
        }
   } else if([@"printLabel" isEqualToString:call.method]) {
      @try {
-       NSDictionary *args = [call arguments];
-       [Manager write:[self mapToTscCommand:args]];
-       result(nil);
+         NSDictionary *args = [call arguments];
+//         Manager.bleConnecter.datagramSize = 10000;
+         NSData *b = [self mapToTscCommand:args];
+         NSLog(@"发送数据长度: %ud",b.length);
+         [Manager write:b progress:^(NSUInteger total,NSUInteger progress){
+             [self.channel invokeMethod:@"update" arguments:@{@"total":@(total),@"progress":@(progress)}];
+             NSLog(@"Send Progress:%d %d %.2f\%", total, progress,progress/total);
+             if (total <= progress) {
+                 result(nil);
+             }
+         } receCallBack:^(NSData *d) {
+             NSLog(@"receCallBack:%@",d);
+         }];
+       
      } @catch(FlutterError *e) {
        result(e);
      }
@@ -158,6 +169,7 @@
         NSString *content = [m objectForKey:@"content"];
         NSNumber *x = ![m objectForKey:@"x"]?@0 : [m objectForKey:@"x"];
         NSNumber *y = ![m objectForKey:@"y"]?@0 : [m objectForKey:@"y"];
+        NSNumber *width = ![m objectForKey:@"width"]?@300 : [m objectForKey:@"width"];
         
         if([@"text" isEqualToString:type]){
             [command addTextwithX:[x intValue] withY:[y intValue] withFont:@"TSS24.BF2" withRotation:0 withXscal:1 withYscal:1 withText:content];
@@ -167,8 +179,9 @@
             [command addQRCode:[x intValue] :[y intValue] :@"L" :5 :@"A" :0 :content];
         }else if([@"image" isEqualToString:type]){
             NSData *decodeData = [[NSData alloc] initWithBase64EncodedString:content options:0];
+//            NSLog(@"decodeData: %uld",decodeData.length);
             UIImage *image = [UIImage imageWithData:decodeData];
-            [command addBitmapwithX:[x intValue] withY:[y intValue] withMode:0 withWidth:300 withImage:image];
+            [command addBitmapwithX:[x intValue] withY:[y intValue] withMode:0 withWidth:width.intValue withImage:image];
         }
        
     }
@@ -242,7 +255,6 @@
             [_channel invokeMethod:@"ScanResult" arguments:device];
         }
     }];
-    
 }
 
 -(void)updateConnectState:(ConnectState)state {

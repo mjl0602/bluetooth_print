@@ -142,14 +142,26 @@ class BluetoothPrint {
     return Future.value(true);
   }
 
-  Future<dynamic> printLabel(Map<String, dynamic> config, List<LineText> data) {
+  Future<dynamic> printLabel(
+    Map<String, dynamic> config,
+    List<LineText> data,
+    Function(Map<String, int>) onUpdate,
+  ) async {
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'update') {
+        var map = Map<String, int>.from(call.arguments);
+        onUpdate?.call(map);
+      }
+      return {"success": true};
+    });
     Map<String, Object> args = Map();
     args['config'] = config;
     args['data'] = data.map((m) {
       return m.toJson();
     }).toList();
 
-    _channel.invokeMethod('printLabel', args);
+    await _channel.invokeMethod('printLabel', args);
+
     return Future.value(true);
   }
 
