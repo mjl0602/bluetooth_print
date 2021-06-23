@@ -119,7 +119,7 @@
          NSData *b = [self mapToTscCommand:args];
          NSLog(@"发送数据长度: %ud",b.length);
          [Manager write:b progress:^(NSUInteger total,NSUInteger progress){
-             [self.channel invokeMethod:@"update" arguments:@{@"total":@(total),@"progress":@(progress)}];
+             [_channel invokeMethod:@"update" arguments:@{@"total":@(total),@"progress":@(progress)}];
              NSLog(@"Send Progress:%d %d %.2f\%", total, progress,progress/total);
              if (total <= progress) {
                  result(nil);
@@ -165,24 +165,23 @@
     
     for(NSDictionary *m in list){
         
-        NSString *type = [m objectForKey:@"type"];
-        NSString *content = [m objectForKey:@"content"];
-        NSNumber *x = ![m objectForKey:@"x"]?@0 : [m objectForKey:@"x"];
-        NSNumber *y = ![m objectForKey:@"y"]?@0 : [m objectForKey:@"y"];
-        NSNumber *width = ![m objectForKey:@"width"]?@300 : [m objectForKey:@"width"];
+         NSString *type = [m objectForKey:@"type"];
+         NSString *content = [m objectForKey:@"content"];
+         NSNumber *x = ![m objectForKey:@"x"]?@0 : [m objectForKey:@"x"];
+         NSNumber *y = ![m objectForKey:@"y"]?@0 : [m objectForKey:@"y"];
+         NSNumber *width = ![m objectForKey:@"width"]?@300 : [m objectForKey:@"width"];
         
-        if([@"text" isEqualToString:type]){
-            [command addTextwithX:[x intValue] withY:[y intValue] withFont:@"TSS24.BF2" withRotation:0 withXscal:1 withYscal:1 withText:content];
-        }else if([@"barcode" isEqualToString:type]){
-            [command add1DBarcode:[x intValue] :[y intValue] :@"CODE128" :100 :1 :0 :2 :2 :content];
-        }else if([@"qrcode" isEqualToString:type]){
-            [command addQRCode:[x intValue] :[y intValue] :@"L" :5 :@"A" :0 :content];
-        }else if([@"image" isEqualToString:type]){
-            NSData *decodeData = [[NSData alloc] initWithBase64EncodedString:content options:0];
-//            NSLog(@"decodeData: %uld",decodeData.length);
-            UIImage *image = [UIImage imageWithData:decodeData];
-            [command addBitmapwithX:[x intValue] withY:[y intValue] withMode:0 withWidth:width.intValue withImage:image];
-        }
+         if([@"text" isEqualToString:type]){
+             [command addTextwithX:[x intValue] withY:[y intValue] withFont:@"TSS24.BF2" withRotation:0 withXscal:[width intValue] withYscal:[width intValue] withText:content];
+         }else if([@"barcode" isEqualToString:type]){
+             [command add1DBarcode:[x intValue] :[y intValue] :@"CODE128" :100 :1 :0 :2 :2 :content];
+         }else if([@"qrcode" isEqualToString:type]){
+             [command addQRCode:[x intValue] :[y intValue] :@"L" :5 :@"A" :0 :content];
+         }else if([@"image" isEqualToString:type]){
+             NSData *decodeData = [[NSData alloc] initWithBase64EncodedString:content options:0];
+             UIImage *image = [UIImage imageWithData:decodeData];
+             [command addBitmapwithX:[x intValue] withY:[y intValue] withMode:0 withWidth:width.intValue withImage:image];
+         }
        
     }
     
